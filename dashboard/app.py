@@ -52,28 +52,28 @@ st.markdown("""
         margin: 1.5rem 0 1rem 0;
     }
     .insight-critical {
-        background: #fff3cd;
+        background: #fee2e2;
         border-left: 5px solid #ffc107;
         padding: 1rem;
         border-radius: 10px;
         margin: 1rem 0;
     }
     .insight-success {
-        background: #d4edda;
+        background: #a7f3d0;
         border-left: 5px solid #28a745;
         padding: 1rem;
         border-radius: 10px;
         margin: 1rem 0;
     }
     .insight-info {
-        background: #d1ecf1;
+        background: #dbeafe;
         border-left: 5px solid #17a2b8;
         padding: 1rem;
         border-radius: 10px;
         margin: 1rem 0;
     }
     .footer {
-        background: linear-gradient(#fee2e2, #a7f3d0 0%, #dbeafe 100%);
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         padding: 1.5rem;
         border-radius: 15px;
         text-align: center;
