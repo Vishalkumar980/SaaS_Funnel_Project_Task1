@@ -52,21 +52,21 @@ st.markdown("""
         margin: 1.5rem 0 1rem 0;
     }
     .insight-critical {
-        background: #fee2e2;
+        background: #1e3a8a;
         border-left: 5px solid #ffc107;
         padding: 1rem;
         border-radius: 10px;
         margin: 1rem 0;
     }
     .insight-success {
-        background: #a7f3d0;
+        background: #065f46;
         border-left: 5px solid #28a745;
         padding: 1rem;
         border-radius: 10px;
         margin: 1rem 0;
     }
     .insight-info {
-        background: #dbeafe;
+        background: #991b1b;
         border-left: 5px solid #17a2b8;
         padding: 1rem;
         border-radius: 10px;
