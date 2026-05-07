@@ -73,7 +73,7 @@ st.markdown("""
         margin: 1rem 0;
     }
     .footer {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(#fee2e2, #a7f3d0 0%, #dbeafe 100%);
         padding: 1.5rem;
         border-radius: 15px;
         text-align: center;
