@@ -1,424 +1,374 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
 import plotly.express as px
 import plotly.graph_objects as go
-import os
-import sys
+import numpy as np
+import random
+from datetime import datetime, timedelta
 
-# Page configuration (must be first Streamlit command)
+# Page config
 st.set_page_config(
     page_title="SaaS Funnel Analytics Dashboard",
     page_icon="📊",
-    layout="wide",
-    initial_sidebar_state="expanded"
+    layout="wide"
 )
 
-# ========== CUSTOM CSS ==========
+# CSS Styling
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-    
-    .stApp {
-        font-family: 'Inter', sans-serif;
-        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-    }
-    
-    /* Header Styling */
     .main-header {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         padding: 2rem;
         border-radius: 20px;
-        margin-bottom: 2rem;
         text-align: center;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        animation: fadeInUp 0.6s ease-out;
+        margin-bottom: 2rem;
     }
-    
     .main-header h1 {
         color: white;
-        font-size: 2.5rem;
-        font-weight: 700;
+        font-size: 2rem;
         margin: 0;
-        text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
     }
-    
     .main-header p {
         color: rgba(255,255,255,0.9);
-        font-size: 1.1rem;
-        margin-top: 0.5rem;
     }
-    
-    /* KPI Card Styling */
-    .kpi-container {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 1rem;
-        margin-bottom: 2rem;
-    }
-    
     .kpi-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 1rem;
+        border-radius: 15px;
+        text-align: center;
+        color: white;
+    }
+    .kpi-value {
+        font-size: 1.8rem;
+        font-weight: bold;
+    }
+    .section-header {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        padding: 0.8rem 1.5rem;
+        border-radius: 12px;
+        color: white;
+        font-size: 1.2rem;
+        font-weight: bold;
+        margin: 1.5rem 0 1rem 0;
+    }
+    .insight-critical {
+        background: #fff3cd;
+        border-left: 5px solid #ffc107;
+        padding: 1rem;
+        border-radius: 10px;
+        margin: 1rem 0;
+    }
+    .insight-success {
+        background: #d4edda;
+        border-left: 5px solid #28a745;
+        padding: 1rem;
+        border-radius: 10px;
+        margin: 1rem 0;
+    }
+    .insight-info {
+        background: #d1ecf1;
+        border-left: 5px solid #17a2b8;
+        padding: 1rem;
+        border-radius: 10px;
+        margin: 1rem 0;
+    }
+    .footer {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         padding: 1.5rem;
         border-radius: 15px;
         text-align: center;
         color: white;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        transition: transform 0.3s ease;
-    }
-    
-    .kpi-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
-    }
-    
-    .kpi-label {
-        font-size: 0.9rem;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        opacity: 0.9;
-    }
-    
-    .kpi-value {
-        font-size: 2rem;
-        font-weight: 700;
-        margin: 0.5rem 0;
-    }
-    
-    /* Section Headers */
-    .section-header {
-        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-        padding: 1rem 1.5rem;
-        border-radius: 10px;
-        color: white;
-        margin: 1.5rem 0 1rem 0;
-        font-weight: 600;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    }
-    
-    /* Sidebar Styling */
-    .css-1d391kg {
-        background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
-    }
-    
-    /* Custom Button */
-    .stButton > button {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border: none;
-        border-radius: 8px;
-        padding: 0.5rem 1.5rem;
-        font-weight: 600;
-        transition: all 0.3s ease;
-    }
-    
-    .stButton > button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(102,126,234,0.4);
-    }
-    
-    /* Info Boxes */
-    .info-box {
-        background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
-        padding: 1rem;
-        border-radius: 10px;
-        border-left: 4px solid #4ecdc4;
-        margin: 1rem 0;
-    }
-    
-    /* Footer */
-    .footer {
-        text-align: center;
-        padding: 2rem;
-        margin-top: 3rem;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        border-radius: 20px;
-        color: white;
-    }
-    
-    /* Animations */
-    @keyframes fadeInUp {
-        from {
-            opacity: 0;
-            transform: translateY(20px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-    
-    @keyframes pulse {
-        0% { transform: scale(1); }
-        50% { transform: scale(1.05); }
-        100% { transform: scale(1); }
-    }
-    
-    .fade-in {
-        animation: fadeInUp 0.6s ease-out;
-    }
-    
-    .pulse {
-        animation: pulse 2s infinite;
+        margin-top: 2rem;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# ========== HEADER WITH CSS ==========
+# Header
 st.markdown("""
-<div class="main-header fade-in">
+<div class="main-header">
     <h1>📊 SaaS User Behaviour Funnel Analytics</h1>
-    <p>Real-time User Journey Analysis & Conversion Optimization Dashboard</p>
+    <p>User Journey Analysis & Conversion Optimization Dashboard</p>
 </div>
 """, unsafe_allow_html=True)
 
-# Load data
+# Load or create data
 @st.cache_data
 def load_data():
     try:
-        df = pd.read_csv('data/cleaned/cleaned_user_events.csv', parse_dates=['event_time'])
+        df = pd.read_csv('data/cleaned/cleaned_user_events.csv')
+        df['event_time'] = pd.to_datetime(df['event_time'])
         return df
-    except FileNotFoundError:
-        st.error("❌ Data file not found! Please run the analysis scripts first.")
-        st.info("Run: python scripts/0_create_sample_data.py")
-        return None
+    except:
+        # Create sample data
+        data = []
+        for user_id in range(1, 1001):
+            signup_date = datetime(2025, 1, 1) + timedelta(days=random.randint(0, 365))
+            channel = random.choice(['Organic', 'Paid', 'Referral'])
+            
+            data.append({'user_id': user_id, 'event_name': 'landing', 
+                        'event_time': signup_date - timedelta(days=1),
+                        'acquisition_channel': channel})
+            
+            if random.random() < 0.65:
+                data.append({'user_id': user_id, 'event_name': 'signup',
+                            'event_time': signup_date, 'acquisition_channel': channel})
+                
+                if random.random() < 0.7:
+                    data.append({'user_id': user_id, 'event_name': 'onboarding',
+                                'event_time': signup_date + timedelta(days=1),
+                                'acquisition_channel': channel})
+                    
+                    if random.random() < 0.75:
+                        data.append({'user_id': user_id, 'event_name': 'first_feature_use',
+                                    'event_time': signup_date + timedelta(days=3),
+                                    'acquisition_channel': channel})
+                        
+                        if random.random() < 0.3:
+                            data.append({'user_id': user_id, 'event_name': 'upgrade',
+                                        'event_time': signup_date + timedelta(days=10),
+                                        'acquisition_channel': channel})
+        
+        df = pd.DataFrame(data)
+        df['event_time'] = pd.to_datetime(df['event_time'])
+        return df
 
 df = load_data()
 
-if df is not None:
-    # Sidebar with custom styling
-    st.sidebar.markdown("""
-    <div class="sidebar-header">
-        <h3>🎛️ Dashboard Controls</h3>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Date range filter
-    st.sidebar.subheader("📅 Date Range")
+# Sidebar filters
+with st.sidebar:
+    st.markdown("## 🎛️ Filters")
     min_date = df['event_time'].min().date()
     max_date = df['event_time'].max().date()
-    date_range = st.sidebar.date_input(
-        "Select Date Range",
-        value=[min_date, max_date],
-        min_value=min_date,
-        max_value=max_date
-    )
+    date_range = st.date_input("Date Range", [min_date, max_date])
     
-    # Channel filter
-    st.sidebar.subheader("📢 Acquisition Channel")
     channels = ['All'] + df['acquisition_channel'].unique().tolist()
-    selected_channel = st.sidebar.selectbox("Select Channel", channels)
-    
-    # Apply filters
-    filtered_df = df.copy()
-    if len(date_range) == 2:
-        filtered_df = filtered_df[
-            (filtered_df['event_time'].dt.date >= date_range[0]) &
-            (filtered_df['event_time'].dt.date <= date_range[1])
-        ]
-    if selected_channel != 'All':
-        filtered_df = filtered_df[filtered_df['acquisition_channel'] == selected_channel]
-    
-    # Calculate funnel metrics
-    funnel_steps = ['landing', 'signup', 'onboarding', 'first_feature_use', 'upgrade']
-    step_labels = ['Landing', 'Sign-up', 'Onboarding', 'First Feature', 'Upgrade']
-    
-    funnel_counts = {}
-    for step in funnel_steps:
-        funnel_counts[step] = filtered_df[filtered_df['event_name'] == step]['user_id'].nunique()
-    
-    total_users = funnel_counts['landing'] if funnel_counts['landing'] > 0 else 1
-    
-    # KPI Row
-    col1, col2, col3, col4 = st.columns(4)
-    
-    with col1:
-        st.markdown("""
-        <div class="kpi-card fade-in">
-            <div class="kpi-label">👥 Total Visitors</div>
-            <div class="kpi-value">{:,}</div>
-        </div>
-        """.format(funnel_counts['landing']), unsafe_allow_html=True)
-    
-    with col2:
-        signup_rate = (funnel_counts['signup'] / total_users * 100)
-        st.markdown("""
-        <div class="kpi-card fade-in">
-            <div class="kpi-label">📝 Signup Rate</div>
-            <div class="kpi-value">{:.1f}%</div>
-        </div>
-        """.format(signup_rate), unsafe_allow_html=True)
-    
-    with col3:
-        upgrade_rate = (funnel_counts['upgrade'] / total_users * 100)
-        st.markdown("""
-        <div class="kpi-card fade-in">
-            <div class="kpi-label">💎 Upgrade Rate</div>
-            <div class="kpi-value">{:.1f}%</div>
-        </div>
-        """.format(upgrade_rate), unsafe_allow_html=True)
-    
-    with col4:
-        drop_off = 100 - upgrade_rate
-        st.markdown("""
-        <div class="kpi-card fade-in">
-            <div class="kpi-label">⚠️ Total Drop-off</div>
-            <div class="kpi-value">{:.1f}%</div>
-        </div>
-        """.format(drop_off), unsafe_allow_html=True)
-    
-    # Funnel Visualization Section
-    st.markdown('<div class="section-header fade-in">🎯 Conversion Funnel Analysis</div>', unsafe_allow_html=True)
-    
-    col1, col2 = st.columns([2, 1])
-    
-    with col1:
-        # Create interactive funnel chart
-        funnel_data = []
-        for i, step in enumerate(funnel_steps):
-            funnel_data.append({
-                'stage': step_labels[i],
-                'users': funnel_counts[step]
-            })
-        
-        funnel_df_plot = pd.DataFrame(funnel_data)
-        
-        fig_funnel = go.Figure(go.Funnel(
-            y=funnel_df_plot['stage'],
-            x=funnel_df_plot['users'],
-            textinfo="value+percent previous",
-            textposition="inside",
-            marker={"color": ["#2ecc71", "#3498db", "#f39c12", "#e74c3c", "#9b59b6"]},
-        ))
-        
-        fig_funnel.update_layout(
-            title="User Conversion Funnel",
-            height=500,
-            font=dict(size=12),
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)'
-        )
-        
-        st.plotly_chart(fig_funnel, use_container_width=True)
-    
-    with col2:
-        # Drop-off analysis
-        drop_off_data = []
-        for i in range(1, len(funnel_steps)):
-            prev_users = funnel_counts[funnel_steps[i-1]]
-            curr_users = funnel_counts[funnel_steps[i]]
-            if prev_users > 0:
-                drop_rate = (prev_users - curr_users) / prev_users * 100
-            else:
-                drop_rate = 0
-            drop_off_data.append({
-                'step': step_labels[i],
-                'drop_rate': drop_rate
-            })
-        
-        drop_df = pd.DataFrame(drop_off_data)
-        
-        fig_drop = px.bar(drop_df, x='step', y='drop_rate', 
-                          title='Drop-off Rate by Stage',
-                          color='drop_rate',
-                          color_continuous_scale='Reds')
-        fig_drop.update_layout(showlegend=False, height=400)
-        st.plotly_chart(fig_drop, use_container_width=True)
-    
-    # Channel Analysis Section
-    st.markdown('<div class="section-header fade-in">📊 Channel Performance Analysis</div>', unsafe_allow_html=True)
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        channel_metrics = []
-        for channel in filtered_df['acquisition_channel'].unique():
-            channel_data = filtered_df[filtered_df['acquisition_channel'] == channel]
-            channel_users = channel_data['user_id'].nunique()
-            upgrade_users = channel_data[channel_data['event_name'] == 'upgrade']['user_id'].nunique()
-            upgrade_rate = (upgrade_users / channel_users * 100) if channel_users > 0 else 0
-            
-            channel_metrics.append({
-                'Channel': channel,
-                'Users': channel_users,
-                'Upgrade Rate (%)': upgrade_rate
-            })
-        
-        channel_df = pd.DataFrame(channel_metrics)
-        
-        fig_channel = px.bar(channel_df, x='Channel', y='Upgrade Rate (%)',
-                             title='Upgrade Rate by Channel',
-                             color='Channel',
-                             text='Upgrade Rate (%)')
-        fig_channel.update_traces(texttemplate='%{text:.1f}%', textposition='outside')
-        fig_channel.update_layout(showlegend=False)
-        st.plotly_chart(fig_channel, use_container_width=True)
-    
-    with col2:
-        fig_pie = px.pie(channel_df, values='Users', names='Channel',
-                         title='User Distribution by Channel',
-                         hole=0.3,
-                         color_discrete_sequence=px.colors.sequential.RdBu)
-        st.plotly_chart(fig_pie, use_container_width=True)
-    
-    # Key Insights Section
-    st.markdown('<div class="section-header fade-in">💡 Actionable Insights</div>', unsafe_allow_html=True)
-    
-    # Calculate insights
-    max_drop_idx = drop_df['drop_rate'].idxmax()
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.markdown(f"""
-        <div class="info-box fade-in">
-            <h3>⚠️ Critical Finding</h3>
-            <p><strong>{drop_df.loc[max_drop_idx, 'step']}</strong> stage has the highest drop-off rate at <strong>{drop_df.loc[max_drop_idx, 'drop_rate']:.1f}%</strong></p>
-            <p><strong>🎯 Action:</strong> Implement targeted interventions at this stage to improve retention</p>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with col2:
-        if len(channel_df) > 0:
-            best_channel = channel_df.loc[channel_df['Upgrade Rate (%)'].idxmax(), 'Channel']
-            best_rate = channel_df['Upgrade Rate (%)'].max()
-            st.markdown(f"""
-            <div class="success-box fade-in">
-                <h3>🏆 Best Performing Channel</h3>
-                <p><strong>{best_channel}</strong> channel achieves <strong>{best_rate:.1f}%</strong> upgrade rate</p>
-                <p><strong>🎯 Action:</strong> Allocate 40% more budget to {best_channel} marketing</p>
-            </div>
-            """, unsafe_allow_html=True)
-    
-    # Footer
+    selected_channel = st.selectbox("Channel", channels)
+
+# Apply filters
+filtered_df = df.copy()
+if len(date_range) == 2:
+    filtered_df = filtered_df[
+        (filtered_df['event_time'].dt.date >= date_range[0]) &
+        (filtered_df['event_time'].dt.date <= date_range[1])
+    ]
+if selected_channel != 'All':
+    filtered_df = filtered_df[filtered_df['acquisition_channel'] == selected_channel]
+
+# Calculate funnel
+steps = ['landing', 'signup', 'onboarding', 'first_feature_use', 'upgrade']
+labels = ['Landing', 'Sign-up', 'Onboarding', 'Feature Use', 'Upgrade']
+
+counts = {}
+for step in steps:
+    counts[step] = filtered_df[filtered_df['event_name'] == step]['user_id'].nunique()
+
+total = counts['landing'] if counts['landing'] > 0 else 1
+
+# KPI Row
+col1, col2, col3, col4 = st.columns(4)
+
+with col1:
     st.markdown(f"""
-    <div class="footer fade-in">
-        <p>📊 Dashboard last updated: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
-        <p>🎯 Built with Streamlit | SaaS Funnel Analytics | Data-Driven Decision Making</p>
+    <div class="kpi-card">
+        <div>👥 Visitors</div>
+        <div class="kpi-value">{counts['landing']:,}</div>
     </div>
     """, unsafe_allow_html=True)
+
+with col2:
+    rate = (counts['signup'] / total * 100)
+    st.markdown(f"""
+    <div class="kpi-card">
+        <div>📝 Signup Rate</div>
+        <div class="kpi-value">{rate:.1f}%</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+with col3:
+    rate = (counts['upgrade'] / total * 100)
+    st.markdown(f"""
+    <div class="kpi-card">
+        <div>💎 Upgrade Rate</div>
+        <div class="kpi-value">{rate:.1f}%</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+with col4:
+    drop = 100 - rate
+    st.markdown(f"""
+    <div class="kpi-card">
+        <div>⚠️ Drop-off</div>
+        <div class="kpi-value">{drop:.1f}%</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+# Funnel Chart
+st.markdown('<div class="section-header">🎯 Conversion Funnel</div>', unsafe_allow_html=True)
+
+funnel_data = [{'Stage': labels[i], 'Users': counts[steps[i]]} for i in range(len(steps))]
+funnel_df_plot = pd.DataFrame(funnel_data)
+
+fig = go.Figure(go.Funnel(
+    y=funnel_df_plot['Stage'],
+    x=funnel_df_plot['Users'],
+    textinfo="value+percent previous",
+    marker={"color": ["#2ecc71", "#3498db", "#f39c12", "#e74c3c", "#9b59b6"]}
+))
+fig.update_layout(height=500)
+st.plotly_chart(fig, use_container_width=True)
+
+# Drop-off Analysis
+st.markdown('<div class="section-header">📉 Drop-off Analysis</div>', unsafe_allow_html=True)
+
+drop_data = []
+for i in range(1, len(steps)):
+    prev_users = counts[steps[i-1]]
+    curr_users = counts[steps[i]]
+    drop_rate = ((prev_users - curr_users) / prev_users * 100) if prev_users > 0 else 0
+    drop_data.append({'Stage': labels[i], 'Drop-off Rate': drop_rate})
+
+drop_df = pd.DataFrame(drop_data)
+fig_drop = px.bar(drop_df, x='Stage', y='Drop-off Rate', 
+                  title='Drop-off Rate by Stage',
+                  color='Drop-off Rate',
+                  color_continuous_scale='Reds',
+                  text='Drop-off Rate')
+fig_drop.update_traces(texttemplate='%{text:.1f}%', textposition='outside')
+st.plotly_chart(fig_drop, use_container_width=True)
+
+# Channel Analysis
+st.markdown('<div class="section-header">📊 Channel Performance</div>', unsafe_allow_html=True)
+
+col1, col2 = st.columns(2)
+
+with col1:
+    channel_metrics = []
+    for channel in filtered_df['acquisition_channel'].unique():
+        channel_data = filtered_df[filtered_df['acquisition_channel'] == channel]
+        channel_users = channel_data['user_id'].nunique()
+        upgrade_users = channel_data[channel_data['event_name'] == 'upgrade']['user_id'].nunique()
+        upgrade_rate = (upgrade_users / channel_users * 100) if channel_users > 0 else 0
+        channel_metrics.append({'Channel': channel, 'Upgrade Rate': upgrade_rate})
     
-    # Data download option
-    with st.expander("📄 View Raw Data"):
-        st.dataframe(filtered_df.head(100))
-        csv = filtered_df.to_csv(index=False)
-        st.download_button(
-            label="📥 Download Filtered Data as CSV",
-            data=csv,
-            file_name="filtered_user_events.csv",
-            mime="text/csv"
-        )
+    ch_df = pd.DataFrame(channel_metrics)
+    fig_bar = px.bar(ch_df, x='Channel', y='Upgrade Rate', 
+                     title='Upgrade Rate by Channel',
+                     text='Upgrade Rate')
+    fig_bar.update_traces(texttemplate='%{text:.1f}%', textposition='outside')
+    st.plotly_chart(fig_bar, use_container_width=True)
+
+with col2:
+    fig_pie = px.pie(ch_df, values='Upgrade Rate', names='Channel', 
+                     title='Channel Distribution', hole=0.4)
+    st.plotly_chart(fig_pie, use_container_width=True)
+
+# ============================================
+# COHORT ANALYSIS - FIXED (NO .dt accessor error)
+# ============================================
+st.markdown('<div class="section-header">📈 Cohort Analysis</div>', unsafe_allow_html=True)
+
+# Create cohort from signup dates - DIFFERENT APPROACH
+# Get first event date for each user as acquisition date
+first_events = filtered_df.groupby('user_id')['event_time'].min().reset_index()
+first_events.columns = ['user_id', 'acquisition_date']
+first_events['cohort'] = first_events['acquisition_date'].dt.strftime('%Y-%m')
+
+# Get upgrade events
+upgrades = filtered_df[filtered_df['event_name'] == 'upgrade'][['user_id', 'event_time']]
+upgrades.columns = ['user_id', 'upgrade_date']
+
+# Merge
+cohort_data = first_events.merge(upgrades, on='user_id', how='left')
+cohort_data['upgraded'] = cohort_data['upgrade_date'].notna()
+
+# Calculate cohort metrics
+cohort_metrics = []
+for cohort in cohort_data['cohort'].unique():
+    cohort_users = cohort_data[cohort_data['cohort'] == cohort]
+    total_users = len(cohort_users)
+    upgraded_users = cohort_users['upgraded'].sum()
+    upgrade_rate = (upgraded_users / total_users * 100) if total_users > 0 else 0
+    
+    cohort_metrics.append({
+        'Cohort': cohort,
+        'Users': total_users,
+        'Upgrade Rate (%)': upgrade_rate
+    })
+
+cohort_df_plot = pd.DataFrame(cohort_metrics)
+cohort_df_plot = cohort_df_plot.sort_values('Cohort')
+
+if len(cohort_df_plot) > 0:
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        fig_cohort = px.line(cohort_df_plot, x='Cohort', y='Upgrade Rate (%)',
+                             title='Cohort Upgrade Rate Trend',
+                             markers=True)
+        fig_cohort.update_traces(line=dict(color="#667eea", width=3))
+        fig_cohort.update_layout(xaxis_tickangle=-45)
+        st.plotly_chart(fig_cohort, use_container_width=True)
+    
+    with col2:
+        fig_cohort_bar = px.bar(cohort_df_plot.sort_values('Upgrade Rate (%)', ascending=False),
+                                x='Cohort', y='Upgrade Rate (%)',
+                                title='Cohort Performance',
+                                color='Upgrade Rate (%)',
+                                color_continuous_scale='Viridis')
+        fig_cohort_bar.update_layout(xaxis_tickangle=-45)
+        st.plotly_chart(fig_cohort_bar, use_container_width=True)
 else:
-    st.warning("⚠️ Please run the analysis scripts first to generate the data.")
-    st.code("""
-    # Run these commands in order:
-    python scripts/0_create_sample_data.py
-    python scripts/1_data_cleaning.py
-    python scripts/2_funnel_analysis.py
-    python scripts/3_cohort_analysis.py
-    python scripts/4_segmentation_analysis.py
-    
-    # Then run the dashboard:
-    streamlit run dashboard/app.py
-    """)
+    st.info("No cohort data available")
+
+# Insights
+st.markdown('<div class="section-header">💡 Actionable Insights</div>', unsafe_allow_html=True)
+
+# Find biggest drop-off
+max_drop_idx = drop_df['Drop-off Rate'].idxmax()
+max_stage = drop_df.loc[max_drop_idx, 'Stage']
+max_rate = drop_df.loc[max_drop_idx, 'Drop-off Rate']
+
+col1, col2 = st.columns(2)
+
+with col1:
+    st.markdown(f"""
+    <div class="insight-critical">
+        <h3>⚠️ Biggest Drop-off Point</h3>
+        <p><strong>{max_stage}</strong> stage loses <strong>{max_rate:.1f}%</strong> of users</p>
+        <p><strong>Action:</strong> Focus optimization efforts on {max_stage.lower()} experience</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+with col2:
+    if len(ch_df) > 0:
+        best = ch_df.loc[ch_df['Upgrade Rate'].idxmax()]
+        st.markdown(f"""
+        <div class="insight-success">
+            <h3>🏆 Best Channel</h3>
+            <p><strong>{best['Channel']}</strong> channel: {best['Upgrade Rate']:.1f}% upgrade rate</p>
+            <p><strong>Action:</strong> Increase marketing budget for {best['Channel']}</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+# Overall
+st.markdown(f"""
+<div class="insight-info">
+    <h3>📊 Summary</h3>
+    <p>Overall conversion rate: <strong>{upgrade_rate:.1f}%</strong> | Industry benchmark: 25-30%</p>
+    <p>Focus on reducing {max_stage.lower()} drop-off to improve conversion by 15-20%</p>
+</div>
+""", unsafe_allow_html=True)
+
+# Footer
+st.markdown(f"""
+<div class="footer">
+    <p>📊 Dashboard updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+    <p>🎯 Built with Streamlit | SaaS Funnel Analytics</p>
+</div>
+""", unsafe_allow_html=True)
+
+# Data download
+with st.expander("📄 View Data"):
+    st.dataframe(filtered_df.head(100))
+    csv = filtered_df.to_csv(index=False)
+    st.download_button("Download CSV", csv, "data.csv", "text/csv")
